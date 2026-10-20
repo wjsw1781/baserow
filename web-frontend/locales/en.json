@@ -282,6 +282,8 @@
     "higherThanOrEqual": "higher than or equal",
     "is": "is",
     "isNot": "is not",
+    "isTeam": "is Team",
+    "isNotTeam": "is not Team",
     "isEmpty": "is empty",
     "isNotEmpty": "is not empty",
     "isDate": "is date",

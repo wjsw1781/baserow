@@ -346,6 +346,17 @@ class BaserowEnterpriseConfig(AppConfig):
 
         webhook_event_type_registry.register(RowsEnterViewEventType())
 
+        # Register team-based view filters (enterprise extension of user_is)
+        from baserow.contrib.database.views.registries import (
+            view_filter_type_registry,
+        )
+        from baserow_enterprise.team_view_filters import (
+            TeamIsViewFilterType,
+            TeamIsNotViewFilterType,
+        )
+        view_filter_type_registry.register(TeamIsViewFilterType())
+        view_filter_type_registry.register(TeamIsNotViewFilterType())
+
         # Create default roles
         post_migrate.connect(
             sync_default_roles_after_migrate,
