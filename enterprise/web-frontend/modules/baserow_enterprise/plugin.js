@@ -115,6 +115,10 @@ import {
   CoreXLSFileReaderActionNodeType,
 } from '@baserow_enterprise/automation/nodeTypes'
 import { KumaAIProviderModelFeatureType } from '@baserow_enterprise/aiProviderModelFeatureTypes'
+import {
+  TeamIsFilterType,
+  TeamIsNotFilterType,
+} from '@baserow_enterprise/viewFilterTypes'
 
 export default defineNuxtPlugin({
   name: 'enterprise',
@@ -317,6 +321,9 @@ export default defineNuxtPlugin({
     )
     $registry.register('onboarding', new AIPromptOnboardingType(context))
 
+    // Team view filters — depend on TeamService (enterprise only)
+    $registry.register('viewFilter', new TeamIsFilterType(context))
+    $registry.register('viewFilter', new TeamIsNotViewFilterType(context))
     $registry.register(
       'fieldContextItem',
       new FieldPermissionsContextItemType(context)
