@@ -24,6 +24,8 @@
             :key="'field-' + field.id"
             :name="field.name"
             :value="field.id"
+            :icon="getFieldIcon(field)"
+            :description="getFieldDescription(field)"
             :disabled="!hasCompatibleFilterTypes(field, filterTypes)"
           ></DropdownItem>
         </Dropdown>
@@ -195,6 +197,18 @@ export default {
     },
     fieldIdExists(fields, fieldId) {
       return fields.findIndex((field) => field.id === fieldId) !== -1
+    },
+    getFieldIcon(field) {
+      if (field.type === 'link_row') {
+        return 'iconoir-ev-plug'
+      }
+      return null
+    },
+    getFieldDescription(field) {
+      if (field.type === 'link_row') {
+        return '🔗 关联字段'
+      }
+      return null
     },
     fieldIsCompatible(filterType, fieldId) {
       const field = this.getField(fieldId)
