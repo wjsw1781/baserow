@@ -3757,8 +3757,11 @@ class LinkRowFieldType(
 
             view = ViewHandler().get_view(
                 link_row_limit_selection_view_id,
-                base_queryset=View.objects.filter(
-                    ownership_type=OWNERSHIP_TYPE_COLLABORATIVE
+                # Allow both collaborative and restricted views to be used as
+                # limit_selection_view, but exclude personal views because they are
+                # private to a user and not shared.
+                base_queryset=View.objects.exclude(
+                    ownership_type="personal"
                 ),
             )
             view_type = view_type_registry.get_by_model(view.specific_class)

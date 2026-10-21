@@ -78,7 +78,6 @@ import form from '@baserow/modules/core/mixins/form'
 import { DatabaseApplicationType } from '@baserow/modules/database/applicationTypes'
 import fieldSubForm from '@baserow/modules/database/mixins/fieldSubForm'
 import ViewService from '@baserow/modules/database/services/view'
-import { CollaborativeViewOwnershipType } from '@baserow/modules/database/viewOwnershipTypes'
 
 export default {
   name: 'FieldLinkRowSubForm',
@@ -231,10 +230,9 @@ export default {
         false,
         false
       )
-      // Because the field types are accessible for everyone, we only want to list
-      // collaborative views, otherwise they might not be visible for everyone. Because
-      // it applies the filters of the view is also makes sense to only list views that
-      // have filtering capabilities.
+      // Allow both collaborative and restricted views to be used as
+      // limit_selection_view, but exclude personal views because they are
+      // private to a user and not shared.
       this.relatedViews = data
         .map((view) => {
           const viewType = this.$registry.get('view', view.type)
@@ -242,9 +240,7 @@ export default {
           return view
         })
         .filter((view) => {
-          return (
-            view.ownership_type === CollaborativeViewOwnershipType.getType()
-          )
+          return view.ownership_type !== 'personal'
         })
         .filter((view) => {
           return view._.type.canFilter
