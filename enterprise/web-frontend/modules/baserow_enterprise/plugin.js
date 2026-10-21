@@ -323,7 +323,7 @@ export default defineNuxtPlugin({
 
     // Team view filters — depend on TeamService (enterprise only)
     $registry.register('viewFilter', new TeamIsFilterType(context))
-    $registry.register('viewFilter', new TeamIsNotViewFilterType(context))
+    $registry.register('viewFilter', new TeamIsNotFilterType(context))
     $registry.register(
       'fieldContextItem',
       new FieldPermissionsContextItemType(context)
