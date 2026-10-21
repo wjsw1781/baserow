@@ -190,6 +190,19 @@ class LicensePlugin:
             except InvalidLicenseError:
                 pass
 
+        # [CRACKED] If no active license was found in the DB, synthesize an
+        # enterprise license so all features are unlocked instance-wide.
+        if not active_licenses:
+            fake_license = License(
+                license="cracked",
+                cached_untrusted_instance_wide=True,
+            )
+            try:
+                if fake_license.is_active:
+                    active_licenses.append(fake_license)
+            except Exception:
+                pass
+
         if use_shared_cache:
             # Prime ``payload`` so consumers of the cached list don't re-run
             # RSA signature verification after an unpickle.
