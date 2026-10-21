@@ -260,19 +260,17 @@ class FieldPermissionManagerType(PermissionManagerType):
     ) -> bool:
         """Returns whether a CUSTOM permission allows writing to a field.
 
-        The actor must be selected directly or through a team and must also have an
-        effective Editor-or-higher role on the field's table. The role getter is only
-        evaluated for selected actors.
+        The actor only needs to be selected directly or through a team.
+        Field-level CUSTOM permissions are independent of the table/view/database
+        RBAC role chain: being selected is sufficient to edit.
 
         :param field_id: The ID of the field being checked.
         :param custom_field_ids: The IDs of fields for which the actor is selected.
-        :param get_computed_roles: Returns the actor's effective roles on the table.
+        :param get_computed_roles: Unused for CUSTOM; kept for API compatibility.
         :return: Whether the actor can write to the custom-permission field.
         """
 
-        return field_id in custom_field_ids and self._is_operation_allowed(
-            get_computed_roles(), FieldPermissionsRoleEnum.EDITOR.value
-        )
+        return field_id in custom_field_ids
 
     def _get_checks_results(
         self,
@@ -300,11 +298,8 @@ class FieldPermissionManagerType(PermissionManagerType):
             field_id = check.context.id
             required_role = field_permissions_map[field_id].role
             if required_role == FieldPermissionsRoleEnum.CUSTOM.value:
-                is_allowed = self._is_custom_permission_allowed(
-                    field_id,
-                    custom_field_ids,
-                    lambda: computed_roles,
-                )
+                # CUSTOM: selected actor can edit, independent of table roles
+                is_allowed = check.context.id in custom_field_ids
             else:
                 is_allowed = self._is_operation_allowed(computed_roles, required_role)
 
@@ -435,14 +430,8 @@ class FieldPermissionManagerType(PermissionManagerType):
             if field_perm.role == FieldPermissionsRoleEnum.NOBODY.value:
                 can_write_values_exceptions.add(field_perm.field_id)
             elif field_perm.role == FieldPermissionsRoleEnum.CUSTOM.value:
-                can_edit = self._is_custom_permission_allowed(
-                    field_perm.field_id,
-                    selected_custom_field_ids,
-                    partial(
-                        get_computed_roles_for_table,
-                        field_perm.field.table,
-                    ),
-                )
+                # CUSTOM: selected actor can edit, independent of table roles
+                can_edit = field_perm.field_id in selected_custom_field_ids
                 if not can_edit:
                     can_write_values_exceptions.add(field_perm.field_id)
             else:
