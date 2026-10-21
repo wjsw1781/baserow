@@ -305,7 +305,7 @@ export default {
      */
     async fetchFields(tableId) {
       try {
-        const { data } = await FieldService(this.$client).fetchAll(tableId)
+        const { data } = await FieldService(this.$client).fetchAll(tableId, this.viewId)
         const { $registry } = useNuxtApp()
         data.forEach((part, index, d) => {
           populateField(data[index], $registry)

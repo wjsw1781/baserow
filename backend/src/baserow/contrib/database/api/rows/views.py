@@ -133,6 +133,7 @@ from baserow.contrib.database.views.filters import AdHocFilters
 from baserow.contrib.database.views.handler import ViewHandler
 from baserow.contrib.database.views.models import View
 from baserow.contrib.database.views.operations import (
+    ListViewRowsOperationType,
     ReadAdjacentViewRowOperationType,
 )
 from baserow.core.action.registries import action_type_registry
@@ -394,12 +395,33 @@ class RowsView(APIView):
 
         table = TableHandler().get_table(table_id)
 
-        CoreHandler().check_permissions(
-            request.user,
-            ListRowsDatabaseTableOperationType.type,
-            workspace=table.database.workspace,
-            context=table,
-        )
+        view_id = query_params.get("view_id")
+        view = None
+        if view_id:
+            view = ViewHandler().get_view_as_user(
+                request.user,
+                view_id,
+                base_queryset=View.objects.prefetch_related("viewsort_set"),
+            )
+            if view.table_id != table.id:
+                raise ViewDoesNotExist()
+
+        if view is not None:
+            # view fallback: table 级权限失败则尝试 view 级权限兜底
+            RowHandler()._check_permissions_with_view_fallback(
+                ListRowsDatabaseTableOperationType.type,
+                ListViewRowsOperationType.type,
+                request.user,
+                table,
+                view,
+            )
+        else:
+            CoreHandler().check_permissions(
+                request.user,
+                ListRowsDatabaseTableOperationType.type,
+                workspace=table.database.workspace,
+                context=table,
+            )
 
         TokenHandler().check_table_permissions(request, "read", table, False)
         search = query_params.get("search")
@@ -408,7 +430,6 @@ class RowsView(APIView):
         include = query_params.get("include")
         exclude = query_params.get("exclude")
         user_field_names = extract_user_field_names_from_params(request.GET)
-        view_id = query_params.get("view_id")
         fields_base_queryset = Field.objects.select_related("content_type").filter(
             table=table
         )
@@ -435,14 +456,8 @@ class RowsView(APIView):
 
         if view_id:
             view_handler = ViewHandler()
-            view = view_handler.get_view_as_user(
-                request.user,
-                view_id,
-                base_queryset=View.objects.prefetch_related("viewsort_set"),
-            )
 
-            if view.table_id != table.id:
-                raise ViewDoesNotExist()
+            # view 已在上方提前获取（用于权限 fallback 检查），这里直接复用
 
             # Ensure fields used for filtering, sorting, or grouping are included in the
             # queryset. Unrequested fields will be filtered out later in the serializer.

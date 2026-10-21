@@ -150,7 +150,7 @@ from baserow.contrib.database.views.registries import (
 )
 from baserow.core.action.registries import action_type_registry
 from baserow.core.db import specific_iterator
-from baserow.core.exceptions import UserNotInWorkspace
+from baserow.core.exceptions import PermissionException, UserNotInWorkspace
 from baserow.core.handler import CoreHandler
 
 from ..constants import SEARCH_MODE_API_PARAM
@@ -325,12 +325,17 @@ class ViewsView(APIView):
         """
 
         table = TableHandler().get_table(table_id)
-        CoreHandler().check_permissions(
-            request.user,
-            ListViewsOperationType.type,
-            workspace=table.database.workspace,
-            context=table,
-        )
+        # 容错：table 级 list_views 权限失败不报错，
+        # 由 list_views 内部的 filter_queryset 按 view 级权限过滤可见视图
+        try:
+            CoreHandler().check_permissions(
+                request.user,
+                ListViewsOperationType.type,
+                workspace=table.database.workspace,
+                context=table,
+            )
+        except PermissionException:
+            pass
 
         views = ViewHandler().list_views(
             request.user,

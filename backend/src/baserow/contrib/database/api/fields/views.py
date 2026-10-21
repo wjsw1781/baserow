@@ -220,34 +220,30 @@ class FieldsView(RealtimeRecoveryPrimaryReadMixin, APIView):
         view_id = query_params.get("view")
         view = ViewHandler().get_view(view_id, table_id=table.id) if view_id else None
 
-        table_check = PermissionCheck(
-            request.user,
-            ListFieldsOperationType.type,
-            context=table,
-        )
-        view_check = PermissionCheck(
-            request.user,
-            ListViewFieldsOperationType.type,
-            context=view,
-        )
-
-        checks = [table_check]
         if view is not None:
-            checks.append(view_check)
-
-        check_results = CoreHandler().check_multiple_permissions(
-            checks,
-            workspace=table.database.workspace,
-            return_permissions_exceptions=True,
-        )
-
-        if view is None and isinstance(check_results[table_check], PermissionException):
-            raise check_results[table_check]
-
-        if view is not None and isinstance(
-            check_results[view_check], PermissionException
-        ):
-            raise check_results[view_check]
+            # 当提供了 view 时，使用 view fallback 机制：
+            # table 级权限失败则尝试 view 级权限兜底（viewer 角色有 view 级读权限即可放行）
+            RowHandler()._check_permissions_with_view_fallback(
+                ListFieldsOperationType.type,
+                ListViewFieldsOperationType.type,
+                request.user,
+                table,
+                view,
+            )
+        else:
+            # 没提供 view 时保持原有的 table 级权限检查
+            table_check = PermissionCheck(
+                request.user,
+                ListFieldsOperationType.type,
+                context=table,
+            )
+            check_results = CoreHandler().check_multiple_permissions(
+                [table_check],
+                workspace=table.database.workspace,
+                return_permissions_exceptions=True,
+            )
+            if isinstance(check_results[table_check], PermissionException):
+                raise check_results[table_check]
 
         TokenHandler().check_table_permissions(
             request, ["read", "create", "update"], table, False
